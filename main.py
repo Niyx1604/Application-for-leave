@@ -24,16 +24,16 @@ def main():
     print(f"Template file found: {template_path.absolute()}")
     print("System ready for initialization.")
     
-    # Initialize and launch GUI interface
+    # Initialize and launch refactored GUI interface
     try:
-        # Add src directory to path for imports
-        sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+        print("Launching refactored GUI interface...")
+        print("Note: Using leave_app_refactored.py - the production-ready version")
         
-        from gui_interface import LeaveApplicationGUI
-        
-        print("Launching GUI interface...")
-        gui = LeaveApplicationGUI()
-        gui.run()
+        # Import and run the refactored version
+        import subprocess
+        result = subprocess.run([sys.executable, "leave_app_refactored.py"], 
+                              capture_output=False)
+        return result.returncode
         
     except ImportError as e:
         print(f"ERROR: Failed to import GUI components: {e}")
