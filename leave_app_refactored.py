@@ -31,13 +31,12 @@ MARGIN_BOTTOM = 20*mm
 
 # SECTION Y-COORDINATES (hardcoded to prevent overlap)
 HEADER_HEIGHT = 150  # pixels for logos
-SECTION_1_Y = CANVAS_HEIGHT - 180*mm  # Office/Department & Name
-SECTION_2_Y = CANVAS_HEIGHT - 200*mm  # Date of Filing, Position, Salary
-SECTION_3_Y = CANVAS_HEIGHT - 230*mm  # Details of Application header
-SECTION_6A_Y = CANVAS_HEIGHT - 250*mm  # Type of Leave (Column A)
-SECTION_6B_Y = CANVAS_HEIGHT - 250*mm  # Details of Leave (Column B)
-SECTION_6C_Y = CANVAS_HEIGHT - 420*mm  # Working Days & Commutation
-SECTION_7_Y = CANVAS_HEIGHT - 500*mm   # Details of Action
+SECTION_1_Y = CANVAS_HEIGHT - 100*mm  # Office/Department & Name (sections 1-5) - FIXED: Reduced gap
+SECTION_3_Y = CANVAS_HEIGHT - 140*mm  # Details of Application header
+SECTION_6A_Y = CANVAS_HEIGHT - 160*mm  # Type of Leave (Column A)
+SECTION_6B_Y = CANVAS_HEIGHT - 160*mm  # Details of Leave (Column B)
+SECTION_6C_Y = CANVAS_HEIGHT - 320*mm  # Working Days & Commutation
+SECTION_7_Y = CANVAS_HEIGHT - 420*mm   # Details of Action
 
 # COLUMN DEFINITIONS for Section 6
 COLUMN_A_START = MARGIN_LEFT
@@ -375,8 +374,7 @@ class LeaveApplicationEncoder:
             
             # Draw all sections using grid system
             self.draw_header_with_logos(c)
-            self.draw_section_1(c)  # Office/Department & Name
-            self.draw_section_2(c)  # Date, Position, Salary
+            self.draw_section_1(c)  # Office/Department & Name (now includes sections 1-5)
             self.draw_section_6(c)  # Details of Application
             self.draw_section_7(c)  # Details of Action
             
@@ -387,25 +385,62 @@ class LeaveApplicationEncoder:
             messagebox.showerror("Error", f"Failed to generate PDF: {str(e)}")
     
     def draw_header_with_logos(self, c):
-        """Draw header section matching Excel template exactly"""
-        # Reserve header block
-        header_y_start = CANVAS_HEIGHT - 30*mm
+        """Draw header section with proper PhilHealth format and logos"""
+        # Header positioning
+        header_y_start = CANVAS_HEIGHT - 20*mm
         
-        # Stamp of Date of Receipt box (top right) - matches Excel position
+        # Stamp of Date of Receipt box (top right)
         stamp_x = CANVAS_WIDTH - MARGIN_RIGHT - 50*mm
-        stamp_y = header_y_start
+        stamp_y = header_y_start - 10*mm
         c.rect(stamp_x, stamp_y, 45*mm, 20*mm)
         c.setFont("Helvetica", 8)
         c.drawString(stamp_x + 2*mm, stamp_y + 16*mm, "Stamp of Date of Receipt")
         
-        # Form title - matches Excel template exactly
-        c.setFont("Helvetica-Bold", 12)
-        c.drawCentredString(CANVAS_WIDTH/2, header_y_start - 35*mm, "Civil Service Form No. 6")
-        c.setFont("Helvetica", 10)
-        c.drawCentredString(CANVAS_WIDTH/2, header_y_start - 40*mm, "Revised 2020")
+        # Civil Service Form header (top left)
+        c.setFont("Helvetica", 8)
+        c.drawString(MARGIN_LEFT, header_y_start - 5*mm, "Civil Service Form No. 6")
+        c.drawString(MARGIN_LEFT, header_y_start - 10*mm, "Revised 2020")
         
+        # Draw logos if available - FIXED positioning to avoid text overlap
+        try:
+            # PhilHealth logo (far left, below header text)
+            if os.path.exists(self.philhealth_logo_var.get()):
+                self.draw_logo(c, self.philhealth_logo_var.get(), 
+                              MARGIN_LEFT, header_y_start - 70*mm, 35*mm, 25*mm)
+            
+            # Bagong Pilipinas logo (right of PhilHealth logo, below header text)
+            if os.path.exists(self.bagong_logo_var.get()):
+                self.draw_logo(c, self.bagong_logo_var.get(),
+                              MARGIN_LEFT + 40*mm, header_y_start - 70*mm, 35*mm, 25*mm)
+        except:
+            pass  # Continue without logos if files not found
+        
+        # PhilHealth header text (centered) - FIXED positioning to avoid logo overlap
+        y_pos = header_y_start - 30*mm  # Start text lower to avoid logo area
+        
+        c.setFont("Helvetica", 9)
+        c.drawCentredString(CANVAS_WIDTH/2, y_pos, "Republic of the Philippines")
+        y_pos -= 4*mm
+        
+        c.setFont("Helvetica-Bold", 10)
+        c.drawCentredString(CANVAS_WIDTH/2, y_pos, "PHILIPPINE HEALTH INSURANCE CORPORATION")
+        y_pos -= 4*mm
+        
+        c.setFont("Helvetica-Bold", 9)
+        c.drawCentredString(CANVAS_WIDTH/2, y_pos, "PhilHealth Regional Office XI")
+        y_pos -= 4*mm
+        
+        c.setFont("Helvetica", 8)
+        c.drawCentredString(CANVAS_WIDTH/2, y_pos, "J.P. Laurel Avenue, Bajada, Poblacion District, Davao City")
+        y_pos -= 3*mm
+        c.drawCentredString(CANVAS_WIDTH/2, y_pos, "(082) 295-2133 local 6000, (082) 295-3385")
+        y_pos -= 3*mm
+        c.drawCentredString(CANVAS_WIDTH/2, y_pos, "teamphilhealth11 @ teamphilhealth @ www.philhealth.gov.ph")
+        y_pos -= 10*mm  # Extra space before title
+        
+        # Main form title
         c.setFont("Helvetica-Bold", 14)
-        c.drawCentredString(CANVAS_WIDTH/2, header_y_start - 50*mm, "APPLICATION FOR LEAVE")
+        c.drawCentredString(CANVAS_WIDTH/2, y_pos, "APPLICATION FOR LEAVE")
     
     def draw_logo(self, c, logo_path, x, y, max_width, max_height):
         """Draw logo with aspect ratio preservation"""
@@ -434,91 +469,88 @@ class LeaveApplicationEncoder:
             c.drawString(x + 5, y + max_height/2, "Logo")
     
     def draw_section_1(self, c):
-        """Draw Section 1: Office/Department and Name - matching Excel template exactly"""
+        """Draw Section 1-5 with proper table structure matching the reference image"""
         y_pos = SECTION_1_Y
         
-        # Section 1 & 2 headers (same line) - exact Excel positioning
+        # Draw main border for sections 1-5
+        table_width = CANVAS_WIDTH - 2*MARGIN_LEFT
+        table_height = 30*mm
+        c.rect(MARGIN_LEFT, y_pos - table_height, table_width, table_height)
+        
+        # Section 1 & 2 (first row)
+        row1_y = y_pos - 5*mm
         c.setFont("Helvetica", 9)
-        c.drawString(MARGIN_LEFT, y_pos, "1.   OFFICE/DEPARTMENT")
-        c.drawString(MARGIN_LEFT + 120*mm, y_pos, "2.  NAME :            (Last)                               (First)                         (Middle)")
+        c.drawString(MARGIN_LEFT + 2*mm, row1_y, "1.   OFFICE/DEPARTMENT")
+        c.drawString(MARGIN_LEFT + 90*mm, row1_y, "2.  NAME :")
+        c.drawString(MARGIN_LEFT + 130*mm, row1_y, "(Last)")
+        c.drawString(MARGIN_LEFT + 170*mm, row1_y, "(First)")
+        c.drawString(MARGIN_LEFT + 210*mm, row1_y, "(Middle)")
         
-        # Draw underlines for the fields (matching Excel)
-        y_underline = y_pos - 6*mm
+        # Vertical dividers for first row
+        c.line(MARGIN_LEFT + 85*mm, y_pos, MARGIN_LEFT + 85*mm, y_pos - 15*mm)  # After Office/Dept
+        c.line(MARGIN_LEFT + 125*mm, y_pos - 5*mm, MARGIN_LEFT + 125*mm, y_pos - 15*mm)  # Before Last
+        c.line(MARGIN_LEFT + 165*mm, y_pos - 5*mm, MARGIN_LEFT + 165*mm, y_pos - 15*mm)  # Before First
+        c.line(MARGIN_LEFT + 205*mm, y_pos - 5*mm, MARGIN_LEFT + 205*mm, y_pos - 15*mm)  # Before Middle
         
-        # Office/Department underline
-        c.line(MARGIN_LEFT + 5*mm, y_underline, MARGIN_LEFT + 100*mm, y_underline)
+        # Horizontal divider between rows
+        c.line(MARGIN_LEFT, y_pos - 15*mm, MARGIN_LEFT + table_width, y_pos - 15*mm)
         
-        # Name underlines
-        name_x_start = MARGIN_LEFT + 120*mm
-        c.line(name_x_start + 20*mm, y_underline, name_x_start + 55*mm, y_underline)  # Last
-        c.line(name_x_start + 75*mm, y_underline, name_x_start + 105*mm, y_underline)  # First  
-        c.line(name_x_start + 125*mm, y_underline, name_x_start + 155*mm, y_underline)  # Middle
-        
-        # Data values (positioned above underlines)
+        # Data values for first row
         c.setFont("Helvetica", 10)
-        c.drawString(MARGIN_LEFT + 5*mm, y_pos - 4*mm, self.form_data['office_department'])
+        c.drawString(MARGIN_LEFT + 2*mm, row1_y - 8*mm, self.form_data['office_department'])
+        c.drawString(MARGIN_LEFT + 130*mm, row1_y - 8*mm, self.form_data['name']['last'])
+        c.drawString(MARGIN_LEFT + 170*mm, row1_y - 8*mm, self.form_data['name']['first'])
+        c.drawString(MARGIN_LEFT + 210*mm, row1_y - 8*mm, self.form_data['name']['middle'])
         
-        # Name values
-        c.drawString(name_x_start + 20*mm, y_pos - 4*mm, self.form_data['name']['last'])
-        c.drawString(name_x_start + 75*mm, y_pos - 4*mm, self.form_data['name']['first'])  
-        c.drawString(name_x_start + 125*mm, y_pos - 4*mm, self.form_data['name']['middle'])
-    
-    def draw_section_2(self, c):
-        """Draw Section 2: Date, Position, Salary - matching Excel template exactly"""
-        y_pos = SECTION_2_Y
-        
+        # Section 3, 4, 5 (second row)
+        row2_y = y_pos - 20*mm
         c.setFont("Helvetica", 9)
+        c.drawString(MARGIN_LEFT + 2*mm, row2_y, "3.   DATE OF FILING")
+        c.drawString(MARGIN_LEFT + 90*mm, row2_y, "4.   POSITION")
+        c.drawString(MARGIN_LEFT + 170*mm, row2_y, "5.  SALARY")
         
-        # Date of Filing with underline
-        c.drawString(MARGIN_LEFT, y_pos, "3.   DATE OF FILING  ")
-        date_underline_start = MARGIN_LEFT + 45*mm
-        c.line(date_underline_start, y_pos - 2*mm, date_underline_start + 40*mm, y_pos - 2*mm)
+        # Vertical dividers for second row
+        c.line(MARGIN_LEFT + 85*mm, y_pos - 15*mm, MARGIN_LEFT + 85*mm, y_pos - table_height)
+        c.line(MARGIN_LEFT + 165*mm, y_pos - 15*mm, MARGIN_LEFT + 165*mm, y_pos - table_height)
         
-        # Date value
+        # Data values for second row
+        c.setFont("Helvetica", 10)
         date_str = self.form_data['date_filing'].strftime("%B %d, %Y")
-        c.setFont("Helvetica", 10)
-        c.drawString(date_underline_start, y_pos - 1*mm, date_str)
-        
-        # Position with underline
-        c.setFont("Helvetica", 9)
-        position_x = MARGIN_LEFT + 120*mm
-        c.drawString(position_x, y_pos, "4.   POSITION  ")
-        pos_underline_start = position_x + 30*mm
-        c.line(pos_underline_start, y_pos - 2*mm, pos_underline_start + 50*mm, y_pos - 2*mm)
-        
-        # Position value
-        c.setFont("Helvetica", 10)
-        c.drawString(pos_underline_start, y_pos - 1*mm, self.form_data['position'])
-        
-        # Salary with underline
-        c.setFont("Helvetica", 9)
-        salary_x = MARGIN_LEFT + 200*mm
-        c.drawString(salary_x, y_pos, "5.  SALARY  ")
-        sal_underline_start = salary_x + 25*mm
-        c.line(sal_underline_start, y_pos - 2*mm, sal_underline_start + 30*mm, y_pos - 2*mm)
-        
-        # Salary value
-        c.setFont("Helvetica", 10)
-        c.drawString(sal_underline_start, y_pos - 1*mm, self.form_data['salary'])
+        c.drawString(MARGIN_LEFT + 2*mm, row2_y - 5*mm, date_str)
+        c.drawString(MARGIN_LEFT + 90*mm, row2_y - 5*mm, self.form_data['position'])
+        c.drawString(MARGIN_LEFT + 170*mm, row2_y - 5*mm, self.form_data['salary'])
     
+
     def draw_section_6(self, c):
-        """Draw Section 6 with two-column split and text wrapping"""
+        """Draw Section 6 with proper table structure and borders like the reference image"""
         y_pos = SECTION_3_Y
         
-        # Section header
-        c.setFont("Helvetica-Bold", FONT_SECTION)
+        # Main section header
+        c.setFont("Helvetica-Bold", 10)
         c.drawString(MARGIN_LEFT, y_pos, "6.  DETAILS OF APPLICATION")
         
-        y_pos -= 8*mm
+        y_pos -= 10*mm
         
-        # Column headers
-        c.setFont("Helvetica", FONT_LABEL)
-        c.drawString(COLUMN_A_START, y_pos, "6.A  TYPE OF LEAVE TO BE AVAILED OF")
-        c.drawString(COLUMN_B_START, y_pos, "6.B  DETAILS OF LEAVE")
+        # Draw main table border for section 6
+        table_width = CANVAS_WIDTH - 2*MARGIN_LEFT
+        table_height = 120*mm
+        c.rect(MARGIN_LEFT, y_pos - table_height, table_width, table_height)
         
-        y_pos -= 6*mm
+        # Column headers with border
+        header_y = y_pos - 5*mm
+        c.setFont("Helvetica-Bold", 9)
+        c.drawString(MARGIN_LEFT + 2*mm, header_y, "6.A  TYPE OF LEAVE TO BE AVAILED OF")
+        c.drawString(MARGIN_LEFT + 140*mm, header_y, "6.B  DETAILS OF LEAVE")
+        
+        # Vertical divider between columns
+        col_divider_x = MARGIN_LEFT + 135*mm
+        c.line(col_divider_x, y_pos, col_divider_x, y_pos - table_height)
+        
+        # Horizontal line under headers
+        c.line(MARGIN_LEFT, y_pos - 10*mm, MARGIN_LEFT + table_width, y_pos - 10*mm)
         
         # Column A: Leave types with checkboxes
+        leave_y = y_pos - 15*mm
         leave_types_text = [
             ('vacation', 'Vacation Leave (Sec. 51, Rule XVI, Omnibus Rules Implementing E.O. No. 292)'),
             ('mandatory', 'Mandatory/Forced Leave(Sec. 25, Rule XVI, Omnibus Rules Implementing E.O. No. 292)'),
@@ -535,87 +567,107 @@ class LeaveApplicationEncoder:
             ('adoption', 'Adoption Leave (R.A. No. 8552)')
         ]
         
-        c.setFont("Helvetica", FONT_SMALL)
+        c.setFont("Helvetica", 7)
         for key, text in leave_types_text:
             # Draw checkbox
             is_checked = self.form_data['leave_types'].get(key, False)
-            self.draw_checkbox(c, COLUMN_A_START + 5*mm, y_pos - 1*mm, is_checked)
+            self.draw_checkbox(c, MARGIN_LEFT + 5*mm, leave_y - 1*mm, is_checked)
             
-            # Draw text with wrapping
-            wrapped_text = self.wrap_text(text, 50)  # 50 chars per line for column A
-            c.drawString(COLUMN_A_START + 10*mm, y_pos, wrapped_text[0])
-            if len(wrapped_text) > 1:
-                y_pos -= 3*mm
-                c.drawString(COLUMN_A_START + 10*mm, y_pos, wrapped_text[1])
+            # Draw text (truncated to fit column)
+            max_width = 125*mm
+            if c.stringWidth(text, "Helvetica", 7) > max_width:
+                # Split long text into multiple lines
+                words = text.split()
+                line1 = ""
+                line2 = ""
+                for word in words:
+                    if c.stringWidth(line1 + " " + word, "Helvetica", 7) < max_width:
+                        line1 += (" " if line1 else "") + word
+                    else:
+                        line2 += (" " if line2 else "") + word
+                
+                c.drawString(MARGIN_LEFT + 10*mm, leave_y, line1)
+                if line2:
+                    leave_y -= 3*mm
+                    c.drawString(MARGIN_LEFT + 10*mm, leave_y, line2)
+            else:
+                c.drawString(MARGIN_LEFT + 10*mm, leave_y, text)
             
-            y_pos -= 4*mm
+            leave_y -= 6*mm
         
-        # Column B: Details of Leave (right column)
-        details_y = SECTION_6A_Y - 6*mm
-        c.setFont("Helvetica", FONT_SMALL)
+        # Others field
+        c.drawString(MARGIN_LEFT + 5*mm, leave_y, "Others:")
+        c.line(MARGIN_LEFT + 20*mm, leave_y - 1*mm, MARGIN_LEFT + 130*mm, leave_y - 1*mm)
+        
+        # Column B: Details of Leave
+        details_y = y_pos - 15*mm
+        c.setFont("Helvetica", 8)
         
         details_text = [
             "In case of Vacation/Special Privilege Leave:",
-            "Within the Philippines __________________________",
-            "Abroad (Specify) _____________________________",
+            "Within the Philippines",
+            "_________________________________",
+            "Abroad (Specify)",
+            "_________________________________",
             "",
             "In case of Sick Leave:",
-            "In Hospital (Specify Illness) _____________________",
-            "Out Patient (Specify Illness)  ____________________",
-            "_____________________________________________",
+            "In Hospital (Specify Illness)",
+            "_________________________________",
+            "Out Patient (Specify Illness)",
+            "_________________________________",
             "",
             "In case of Special Leave Benefits for Women:",
-            "(Specify Illness) ________________________________",
-            "_____________________________________________",
+            "(Specify Illness)",
+            "_________________________________",
             "",
             "In case of Study Leave:",
-            "Completion of Master's Degree",
-            "BAR/Board Examination Review",
+            "☐ Completion of Master's Degree",
+            "☐ BAR/Board Examination Review",
             "",
             "Other purpose:",
-            "Monetization of Leave Credits",
-            "Terminal Leave"
+            "☐ Monetization of Leave Credits",
+            "☐ Terminal Leave"
         ]
         
         for line in details_text:
-            if line.strip():  # Skip empty lines for spacing
-                wrapped_lines = self.wrap_text(line, 35)  # 35 chars per line for column B
-                for wrapped_line in wrapped_lines:
-                    c.drawString(COLUMN_B_START, details_y, wrapped_line)
-                    details_y -= 3*mm
+            if line.strip():
+                if line.startswith("☐"):
+                    # Draw checkbox for options
+                    self.draw_checkbox(c, MARGIN_LEFT + 140*mm, details_y - 1*mm, False)
+                    c.drawString(MARGIN_LEFT + 145*mm, details_y, line[2:])
+                else:
+                    c.drawString(MARGIN_LEFT + 140*mm, details_y, line)
+                details_y -= 4*mm
             else:
                 details_y -= 2*mm
         
-        # Section 6.C and 6.D
-        y_pos = SECTION_6C_Y
+        # Section 6.C and 6.D at bottom
+        bottom_y = y_pos - table_height + 25*mm
         
-        c.setFont("Helvetica", FONT_LABEL)
-        c.drawString(MARGIN_LEFT, y_pos, "6.C  NUMBER OF WORKING DAYS APPLIED FOR")
-        c.drawString(COLUMN_B_START, y_pos, "6.D  COMMUTATION")
+        # Horizontal divider
+        c.line(MARGIN_LEFT, bottom_y + 20*mm, MARGIN_LEFT + table_width, bottom_y + 20*mm)
         
-        y_pos -= 6*mm
+        c.setFont("Helvetica-Bold", 9)
+        c.drawString(MARGIN_LEFT + 2*mm, bottom_y + 15*mm, "6.C  NUMBER OF WORKING DAYS APPLIED FOR")
+        c.drawString(MARGIN_LEFT + 140*mm, bottom_y + 15*mm, "6.D  COMMUTATION")
         
         # Working days value
-        c.setFont("Helvetica-Bold", FONT_DATA)
-        working_days_text = f"{self.form_data['working_days']} day" if self.form_data['working_days'] == 1 else f"{self.form_data['working_days']} days"
-        c.drawString(MARGIN_LEFT + 10*mm, y_pos, working_days_text)
+        c.setFont("Helvetica-Bold", 10)
+        working_days_text = f"{self.form_data['working_days']} Day" if self.form_data['working_days'] == 1 else f"{self.form_data['working_days']} Days"
+        c.drawString(MARGIN_LEFT + 10*mm, bottom_y + 8*mm, working_days_text)
         
-        # Commutation checkboxes
-        c.setFont("Helvetica", FONT_SMALL)
-        self.draw_checkbox(c, COLUMN_B_START, y_pos - 1*mm, self.form_data['commutation']['not_requested'])
-        c.drawString(COLUMN_B_START + 5*mm, y_pos, "Not Requested")
+        # Commutation options
+        c.setFont("Helvetica", 9)
+        self.draw_checkbox(c, MARGIN_LEFT + 140*mm, bottom_y + 8*mm, self.form_data['commutation']['not_requested'])
+        c.drawString(MARGIN_LEFT + 145*mm, bottom_y + 8*mm, "Not Requested")
         
-        y_pos -= 4*mm
-        self.draw_checkbox(c, COLUMN_B_START, y_pos - 1*mm, self.form_data['commutation']['requested'])
-        c.drawString(COLUMN_B_START + 5*mm, y_pos, "Requested")
-        
-        y_pos -= 8*mm
+        self.draw_checkbox(c, MARGIN_LEFT + 200*mm, bottom_y + 8*mm, self.form_data['commutation']['requested'])
+        c.drawString(MARGIN_LEFT + 205*mm, bottom_y + 8*mm, "Requested")
         
         # Inclusive dates
-        c.setFont("Helvetica", FONT_LABEL)
-        c.drawString(MARGIN_LEFT + 10*mm, y_pos, "INCLUSIVE DATES")
+        c.setFont("Helvetica", 9)
+        c.drawString(MARGIN_LEFT + 10*mm, bottom_y, "INCLUSIVE DATES")
         
-        y_pos -= 4*mm
         start = self.form_data['inclusive_dates']['start']
         end = self.form_data['inclusive_dates']['end']
         if start == end:
@@ -623,16 +675,13 @@ class LeaveApplicationEncoder:
         else:
             date_range = f"{start.strftime('%B %d, %Y')} - {end.strftime('%B %d, %Y')}"
         
-        c.setFont("Helvetica-Bold", FONT_DATA)
-        c.drawString(MARGIN_LEFT + 10*mm, y_pos, date_range)
-        
-        y_pos -= 10*mm
+        c.setFont("Helvetica-Bold", 10)
+        c.drawString(MARGIN_LEFT + 10*mm, bottom_y - 5*mm, date_range)
         
         # Signature line
-        c.setFont("Helvetica", FONT_SMALL)
-        c.line(COLUMN_B_START, y_pos, COLUMN_B_START + 50*mm, y_pos)
-        y_pos -= 3*mm
-        c.drawString(COLUMN_B_START + 15*mm, y_pos, "(Signature of Applicant)")
+        c.line(MARGIN_LEFT + 140*mm, bottom_y - 10*mm, MARGIN_LEFT + 220*mm, bottom_y - 10*mm)
+        c.setFont("Helvetica", 8)
+        c.drawString(MARGIN_LEFT + 165*mm, bottom_y - 15*mm, "(Signature of Applicant)")
     
     def draw_checkbox(self, c, x, y, is_checked):
         """Draw a physical vector checkbox (10px by 10px)"""
@@ -655,73 +704,117 @@ class LeaveApplicationEncoder:
         return text[:max_chars-3] + "..."
     
     def draw_section_7(self, c):
-        """Draw Section 7: Details of Action on Application"""
+        """Draw Section 7: Details of Action on Application with proper table structure"""
         y_pos = SECTION_7_Y
         
         # Section header
-        c.setFont("Helvetica-Bold", FONT_SECTION)
+        c.setFont("Helvetica-Bold", 10)
         c.drawString(MARGIN_LEFT, y_pos, "7.  DETAILS OF ACTION ON APPLICATION")
-        
-        y_pos -= 8*mm
-        
-        # 7.A and 7.B headers
-        c.setFont("Helvetica", FONT_LABEL)
-        c.drawString(MARGIN_LEFT, y_pos, "7.A  CERTIFICATION OF LEAVE CREDITS")
-        c.drawString(COLUMN_B_START, y_pos, "7.B  RECOMMENDATION")
-        
-        y_pos -= 6*mm
-        
-        # Leave credits section
-        c.setFont("Helvetica", FONT_SMALL)
-        c.drawString(MARGIN_LEFT + 5*mm, y_pos, "As of _______________________")
-        c.drawString(COLUMN_B_START, y_pos, "For approval")
-        
-        y_pos -= 6*mm
-        
-        # Table headers
-        c.drawString(MARGIN_LEFT + 20*mm, y_pos, "Vacation Leave")
-        c.drawString(MARGIN_LEFT + 50*mm, y_pos, "Sick Leave")
-        c.drawString(COLUMN_B_START, y_pos, "For disapproval due to ________________________")
-        
-        y_pos -= 4*mm
-        c.drawString(MARGIN_LEFT + 5*mm, y_pos, "Total Earned")
-        y_pos -= 4*mm
-        c.drawString(MARGIN_LEFT + 5*mm, y_pos, "Less this application")
-        y_pos -= 4*mm
-        c.drawString(MARGIN_LEFT + 5*mm, y_pos, "Balance")
-        
-        y_pos -= 8*mm
-        
-        # Authorized Officer signatures
-        c.line(MARGIN_LEFT + 5*mm, y_pos, MARGIN_LEFT + 60*mm, y_pos)
-        c.line(COLUMN_B_START, y_pos, COLUMN_B_START + 50*mm, y_pos)
-        y_pos -= 3*mm
-        c.setFont("Helvetica", FONT_SMALL)
-        c.drawString(MARGIN_LEFT + 20*mm, y_pos, "(Authorized Officer)")
-        c.drawString(COLUMN_B_START + 15*mm, y_pos, "(Authorized Officer)")
         
         y_pos -= 10*mm
         
-        # 7.C and 7.D
-        c.setFont("Helvetica", FONT_LABEL)
-        c.drawString(MARGIN_LEFT, y_pos, "7.C  APPROVED FOR:")
-        c.drawString(COLUMN_B_START, y_pos, "7.D   DISAPPROVED DUE TO:")
+        # Draw main table border for section 7
+        table_width = CANVAS_WIDTH - 2*MARGIN_LEFT
+        table_height = 80*mm
+        c.rect(MARGIN_LEFT, y_pos - table_height, table_width, table_height)
         
-        y_pos -= 5*mm
-        c.setFont("Helvetica", FONT_SMALL)
-        c.drawString(MARGIN_LEFT + 10*mm, y_pos, "_______ days with pay")
-        y_pos -= 4*mm
-        c.drawString(MARGIN_LEFT + 10*mm, y_pos, "_______ days without pay")
-        y_pos -= 4*mm
-        c.drawString(MARGIN_LEFT + 10*mm, y_pos, "_______ others (Specify)")
+        # 7.A and 7.B headers
+        header_y = y_pos - 5*mm
+        c.setFont("Helvetica-Bold", 9)
+        c.drawString(MARGIN_LEFT + 2*mm, header_y, "7.A  CERTIFICATION OF LEAVE CREDITS")
+        c.drawString(MARGIN_LEFT + 140*mm, header_y, "7.B  RECOMMENDATION")
         
-        y_pos -= 15*mm
+        # Vertical divider
+        col_divider_x = MARGIN_LEFT + 135*mm
+        c.line(col_divider_x, y_pos, col_divider_x, y_pos - table_height)
         
-        # Final signature line
-        c.line(MARGIN_LEFT + 60*mm, y_pos, MARGIN_LEFT + 120*mm, y_pos)
-        y_pos -= 3*mm
-        c.setFont("Helvetica", FONT_SMALL)
-        c.drawString(MARGIN_LEFT + 75*mm, y_pos, "(Authorized Official)")
+        # Horizontal line under headers
+        c.line(MARGIN_LEFT, y_pos - 10*mm, MARGIN_LEFT + table_width, y_pos - 10*mm)
+        
+        # 7.A Content
+        content_y = y_pos - 15*mm
+        c.setFont("Helvetica", 8)
+        c.drawString(MARGIN_LEFT + 10*mm, content_y, "As of")
+        c.line(MARGIN_LEFT + 20*mm, content_y - 1*mm, MARGIN_LEFT + 60*mm, content_y - 1*mm)
+        
+        content_y -= 8*mm
+        
+        # Leave credits table
+        table_x = MARGIN_LEFT + 10*mm
+        table_y = content_y
+        
+        # Table headers
+        c.rect(table_x, table_y - 15*mm, 80*mm, 15*mm)
+        c.line(table_x + 40*mm, table_y, table_x + 40*mm, table_y - 15*mm)  # Vertical divider
+        c.line(table_x, table_y - 5*mm, table_x + 80*mm, table_y - 5*mm)   # Horizontal divider
+        
+        c.setFont("Helvetica", 8)
+        c.drawString(table_x + 15*mm, table_y - 3*mm, "Vacation Leave")
+        c.drawString(table_x + 55*mm, table_y - 3*mm, "Sick Leave")
+        
+        c.drawString(table_x + 2*mm, table_y - 8*mm, "Total Earned")
+        c.drawString(table_x + 2*mm, table_y - 11*mm, "Less this application")
+        c.drawString(table_x + 2*mm, table_y - 14*mm, "Balance")
+        
+        # Authorized Officer signature line
+        sig_y = table_y - 25*mm
+        c.line(table_x, sig_y, table_x + 80*mm, sig_y)
+        c.setFont("Helvetica", 7)
+        c.drawString(table_x + 25*mm, sig_y - 4*mm, "(Authorized Officer)")
+        
+        # 7.B Content
+        c.setFont("Helvetica", 8)
+        rec_y = y_pos - 15*mm
+        self.draw_checkbox(c, MARGIN_LEFT + 140*mm, rec_y - 1*mm, False)
+        c.drawString(MARGIN_LEFT + 145*mm, rec_y, "For approval")
+        
+        rec_y -= 5*mm
+        self.draw_checkbox(c, MARGIN_LEFT + 140*mm, rec_y - 1*mm, False)
+        c.drawString(MARGIN_LEFT + 145*mm, rec_y, "For disapproval due to")
+        c.line(MARGIN_LEFT + 185*mm, rec_y - 1*mm, MARGIN_LEFT + 240*mm, rec_y - 1*mm)
+        
+        # Additional lines for disapproval reasons
+        for i in range(3):
+            rec_y -= 4*mm
+            c.line(MARGIN_LEFT + 140*mm, rec_y - 1*mm, MARGIN_LEFT + 240*mm, rec_y - 1*mm)
+        
+        # Authorized Officer signature for 7.B
+        rec_y -= 10*mm
+        c.line(MARGIN_LEFT + 160*mm, rec_y, MARGIN_LEFT + 220*mm, rec_y)
+        c.setFont("Helvetica", 7)
+        c.drawString(MARGIN_LEFT + 175*mm, rec_y - 4*mm, "(Authorized Officer)")
+        
+        # 7.C and 7.D at bottom
+        bottom_y = y_pos - table_height + 30*mm
+        
+        # Horizontal divider
+        c.line(MARGIN_LEFT, bottom_y + 25*mm, MARGIN_LEFT + table_width, bottom_y + 25*mm)
+        
+        c.setFont("Helvetica-Bold", 9)
+        c.drawString(MARGIN_LEFT + 2*mm, bottom_y + 20*mm, "7.C  APPROVED FOR:")
+        c.drawString(MARGIN_LEFT + 140*mm, bottom_y + 20*mm, "7.D   DISAPPROVED DUE TO:")
+        
+        # 7.C Content
+        c.setFont("Helvetica", 8)
+        c.line(MARGIN_LEFT + 10*mm, bottom_y + 15*mm, MARGIN_LEFT + 25*mm, bottom_y + 15*mm)
+        c.drawString(MARGIN_LEFT + 27*mm, bottom_y + 15*mm, "days with pay")
+        
+        c.line(MARGIN_LEFT + 10*mm, bottom_y + 10*mm, MARGIN_LEFT + 25*mm, bottom_y + 10*mm)
+        c.drawString(MARGIN_LEFT + 27*mm, bottom_y + 10*mm, "days without pay")
+        
+        c.line(MARGIN_LEFT + 10*mm, bottom_y + 5*mm, MARGIN_LEFT + 25*mm, bottom_y + 5*mm)
+        c.drawString(MARGIN_LEFT + 27*mm, bottom_y + 5*mm, "others (Specify)")
+        
+        # 7.D Content (lines for disapproval reasons)
+        for i in range(3):
+            line_y = bottom_y + 15*mm - (i * 5*mm)
+            c.line(MARGIN_LEFT + 140*mm, line_y, MARGIN_LEFT + 240*mm, line_y)
+        
+        # Final authorized official signature
+        final_sig_y = bottom_y - 10*mm
+        c.line(MARGIN_LEFT + 80*mm, final_sig_y, MARGIN_LEFT + 160*mm, final_sig_y)
+        c.setFont("Helvetica", 7)
+        c.drawString(MARGIN_LEFT + 105*mm, final_sig_y - 4*mm, "(Authorized Official)")
     
     def clear_form(self):
         """Clear all form fields except Office/Department default"""

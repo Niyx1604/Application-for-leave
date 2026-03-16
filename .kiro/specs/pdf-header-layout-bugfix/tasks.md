@@ -1,0 +1,93 @@
+# Implementation Plan
+
+- [x] 1. Write bug condition exploration test
+  - **Property 1: Bug Condition** - PDF Header Element Overlap Detection
+  - **CRITICAL**: This test MUST FAIL on unfixed code - failure confirms the bug exists
+  - **DO NOT attempt to fix the test or the code when it fails**
+  - **NOTE**: This test encodes the expected behavior - it will validate the fix when it passes after implementation
+  - **GOAL**: Surface counterexamples that demonstrate the bug exists
+  - **Scoped PBT Approach**: For deterministic bugs, scope the property to the concrete failing case(s) to ensure reproducibility
+  - Test that draw_pdf_header renders multiple header elements (Republic of the Philippines, PHILIPPINE HEALTH INSURANCE CORPORATION, PhilHealth Regional Office XI, address, phone, email) at distinct Y coordinates with proper 4-5mm spacing
+  - Test that PhilHealth and Bagong Pilipinas logos are positioned horizontally side-by-side at the same Y-coordinate at the top of the header
+  - Test that "Civil Service Form No. 6" and "Revised 2020" are positioned in a small box in the top-left corner INSIDE the main border
+  - Test that "Stamp of Date of Receipt" box is positioned in the top-right corner INSIDE the main border
+  - Test that header text hierarchy matches reference layout (logos at top horizontally aligned, then Republic text centered, then PHILHEALTH CORPORATION centered and bold, then Regional Office centered, then address/contact centered in smaller font, then APPLICATION FOR LEAVE centered, bold, and larger)
+  - Test that spacing between "APPLICATION FOR LEAVE" title and "1. OFFICE/DEPARTMENT" section is appropriate (10-15mm) without excessive gaps
+  - Test that overall spacing is consistent and professional with no text overlap or excessive gaps throughout the header
+  - The test assertions should match the Expected Behavior Properties from design (requirements 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 2.10, 2.11)
+  - Run test on UNFIXED code (leave_app_complete.py)
+  - **EXPECTED OUTCOME**: Test FAILS (this is correct - it proves the bug exists)
+  - Document counterexamples found to understand root cause (text overlap, horizontal logo alignment issues, form metadata box positioning, stamp box positioning, text hierarchy issues, excessive spacing)
+  - Mark task complete when test is written, run, and failure is documented
+  - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 1.10, 1.11_
+
+- [x] 2. Write preservation property tests (BEFORE implementing fix)
+  - **Property 2: Preservation** - Form Body and Data Population Behavior
+  - **IMPORTANT**: Follow observation-first methodology
+  - Observe behavior on UNFIXED code for non-header rendering operations
+  - Observe that form body tables, checkboxes, and data fields render correctly on unfixed code
+  - Observe that user input data populates correctly into form fields on unfixed code
+  - Observe that PDF saving and error handling work correctly on unfixed code
+  - Write property-based tests capturing observed behavior patterns from Preservation Requirements
+  - Property-based testing generates many test cases for stronger guarantees
+  - Test that form body table rendering and alignment continues to work correctly
+  - Test that data population into form fields continues to function properly
+  - Test that table borders and structure continue to display correctly
+  - Test that leave type checkboxes continue to render properly
+  - Test that date formatting and working days display remain unchanged
+  - Test that signature sections positioning continues to work correctly
+  - Test that PDF file generation creates valid documents
+  - Test that error handling for missing logo files works gracefully
+  - Run tests on UNFIXED code
+  - **EXPECTED OUTCOME**: Tests PASS (this confirms baseline behavior to preserve)
+  - Mark task complete when tests are written, run, and passing on unfixed code
+  - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8_
+
+- [ ] 3. Fix for PDF header layout Y-axis management
+
+  - [x] 3.1 Implement the Y-axis management fix in draw_pdf_header function
+    - Implement systematic Y-axis tracking with consistent Y position management
+    - Use consistent 4-5mm spacing between text lines throughout header rendering
+    - Track Y position throughout the function and return final Y position for form content positioning
+    - Position PhilHealth and Bagong Pilipinas logos horizontally side-by-side at the same Y-coordinate at the top of the header
+    - Align both logos at the same Y-coordinate above the organization text
+    - Maintain proper spacing between the two logos and constrain logo sizes while maintaining aspect ratio
+    - Position "Civil Service Form No. 6" and "Revised 2020" in a small box in the top-left corner INSIDE the main border
+    - Position "Stamp of Date of Receipt" box in the top-right corner INSIDE the main border with proper alignment
+    - Create clear text hierarchy matching reference layout: logos at top (horizontally aligned), then "Republic of the Philippines" centered, then "PHILIPPINE HEALTH INSURANCE CORPORATION" centered and bold, then "PhilHealth Regional Office XI" centered, then address and contact details centered in smaller font, then "APPLICATION FOR LEAVE" centered, bold, and larger
+    - Standardize spacing between different header sections (4-5mm between text lines, 10-15mm between title and form content)
+    - Ensure consistent, professional spacing throughout with no text overlap or excessive gaps
+    - Integrate coordinate system with form body positioning to maintain consistent margin alignment
+    - Enhance error handling to maintain layout integrity when logo files are missing
+    - _Bug_Condition: isBugCondition(input) where input.hasMultipleHeaderElements == true AND (input.yAxisManagement == "inconsistent" OR input.logoAlignment != "horizontal_side_by_side" OR input.formMetadataBoxPosition != "inside_main_border" OR input.textHierarchy == "unclear" OR input.elementOverlap == true)_
+    - _Expected_Behavior: expectedBehavior(result) - elements positioned to match reference layout exactly with horizontal logo alignment, proper box positioning, clear hierarchy, and consistent spacing_
+    - _Preservation: Form body rendering, data population, table structure, checkboxes, dates, signatures, PDF generation, and error handling must remain unchanged_
+    - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 2.10, 2.11, 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8_
+
+  - [x] 3.2 Verify bug condition exploration test now passes
+    - **Property 1: Expected Behavior** - PDF Header Layout Matching Reference
+    - **IMPORTANT**: Re-run the SAME test from task 1 - do NOT write a new test
+    - The test from task 1 encodes the expected behavior
+    - When this test passes, it confirms the expected behavior is satisfied
+    - Run bug condition exploration test from step 1
+    - **EXPECTED OUTCOME**: Test PASSES (confirms bug is fixed)
+    - Verify that header elements now render at distinct Y coordinates with proper spacing
+    - Verify that logos are positioned horizontally side-by-side at the same Y-coordinate
+    - Verify that form metadata box is in top-left corner INSIDE main border
+    - Verify that stamp box is in top-right corner INSIDE main border
+    - Verify that text hierarchy matches reference layout
+    - Verify that spacing between sections is appropriate without excessive gaps
+    - Verify that overall spacing is consistent and professional with no overlaps
+    - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 2.10, 2.11_
+
+  - [x] 3.3 Verify preservation tests still pass
+    - **Property 2: Preservation** - Form Body and Data Population Behavior
+    - **IMPORTANT**: Re-run the SAME tests from task 2 - do NOT write new tests
+    - Run preservation property tests from step 2
+    - **EXPECTED OUTCOME**: Tests PASS (confirms no regressions)
+    - Confirm all tests still pass after fix (no regressions in form body rendering, data population, or PDF generation)
+    - Verify that form body functionality remains completely intact
+    - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8_
+
+- [x] 4. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
